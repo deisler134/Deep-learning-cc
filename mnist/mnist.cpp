@@ -23,11 +23,12 @@ const int64_t kTrainBatchSize = 64;
 const int64_t kTestBatchSize = 1000;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 1;
+const int64_t kNumberOfEpochs = 10;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
+/*	define module	*/
 //struct Net : torch::nn::Module {
 //  Net()
 //      : conv1(torch::nn::Conv2dOptions(1, 10, /*kernel_size=*/5)),
@@ -52,12 +53,13 @@ const int64_t kLogInterval = 10;
 //    return torch::log_softmax(x,1);
 //  }
 //
-//  torch::nn::Conv2d conv1;
+//  torch::nn::Conv2d conv1{nullptr};
 //  torch::nn::Conv2d conv2;
 //  torch::nn::FeatureDropout conv2_drop;
 //  torch::nn::Linear fc1;
 //  torch::nn::Linear fc2;
 //};
+
 
 
 /*	define module with Macro TORCH_MODULE()	*/
@@ -125,7 +127,6 @@ void train(
           loss.template item<float>());
     }
   }
-  torch::save(model,"mnist_model.pt");
 }
 
 template <typename DataLoader>
@@ -173,17 +174,22 @@ auto main() -> int {
   }
   torch::Device device(device_type);
 
-  MnistNet model;
+
 //  torch::nn::Sequential model(
 //		  torch::nn::Conv2d(torch::nn::Conv3dOptions(1, 10, /*kernel_size=*/5)),
 //		  torch::Functional(torch::max_pooled(2)),
 //		  torch::Functional(torch::relu));
 
-
-
-//  Net model;
-
+//----  using Macro define module
+  MnistNet model;
   model->to(device);
+//----	using Macro define module
+
+//  Net model2;
+//  model2.to(device);
+
+
+
 
   auto train_dataset = torch::data::datasets::MNIST(kDataRoot)
                            .map(torch::data::transforms::Normalize<>(0.1307, 0.3081))
@@ -202,27 +208,33 @@ auto main() -> int {
       torch::data::make_data_loader(std::move(test_dataset), kTestBatchSize);
 
   torch::optim::SGD optimizer(
-      model->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
+		  model->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
 
   for (size_t epoch = 1; epoch <= kNumberOfEpochs; ++epoch) {
     train(epoch, model, device, *train_loader, optimizer, train_dataset_size);
     test(model, device, *test_loader, test_dataset_size);
   }
 
+
+  torch::save(model,"mnist_model.pt");
+
   MnistNet model_load;
-  /*	how to load models
-  torch::serialize::InputArchive archive;
-  std::string file("mnist_model.pt");
-  archive.load_from(file);
-//  torch::nn::Sequential savedSeq;
-//  savedSeq->load(archive);
-  model_load->load(archive);
-  */
+//  //	how to load models
+//  torch::serialize::InputArchive archive;
+//  std::string file("mnist_model.pt");
+//  archive.load_from(file);
+////  torch::nn::Sequential savedSeq;
+////  savedSeq->load(archive);
+//  model_load->load(archive);
+//  //	how to load models
   torch::load(model_load,"mnist_model.pt");
   std::cout<<"load model"<<std::endl;
   for(const auto& pair : model_load->named_parameters() ){
 	  std::cout<< pair.key()<<":"<<pair.value()<<std::endl;
   }
+
+
+
 }
 
 
