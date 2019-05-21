@@ -1,2 +1,2 @@
-# pytorch_c++
-Deep learning with pytorch and c++
+# Deep-learning c++
+Deep learning with c++
